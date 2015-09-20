@@ -63,66 +63,72 @@ public class SlideListView extends ListView {
         alphaWidth = screenWidth / 3 * 2;
     }
 
-    @Override
-    public boolean dispatchTouchEvent(MotionEvent ev) {
-        switch (ev.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                if (!scroller.isFinished()) {
-                    return super.dispatchTouchEvent(ev);
-                }
-                startX = (int) ev.getX();
-                startY = (int) ev.getY();
-                curPos = pointToPosition(startX, startY);
-                if (curPos == AdapterView.INVALID_POSITION) {//-1
-                    return super.dispatchTouchEvent(ev);
-                }
-                item = getChildAt(curPos - getFirstVisiblePosition());
-                break;
-            case MotionEvent.ACTION_MOVE:
-                if ((Math.abs(ev.getX() - startX) > mTouchSlop
-                        && (Math.abs(ev.getY() - startY) < mTouchSlop))) {
-                    isSliding = true;
-                }
-                break;
-            case MotionEvent.ACTION_UP:
-                break;
-        }
-        return super.dispatchTouchEvent(ev);
-    }
-
 
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
-        if (isSliding && curPos != AdapterView.INVALID_POSITION) {
-            addVelocityTracker(ev);
-            switch (ev.getAction()) {
-                case MotionEvent.ACTION_MOVE:
-                    //用于取消item的点击事件，长按事件以及item的高亮
-                    MotionEvent cancelEvent = MotionEvent.obtain(ev);
-                    cancelEvent.setAction(MotionEvent.ACTION_CANCEL |
-                            (ev.getActionIndex() << MotionEvent.ACTION_POINTER_INDEX_SHIFT));
-                    onTouchEvent(cancelEvent);
-                    int curX = (int) ev.getX();
-                    int deltaX = startX - curX;
-                    startX = curX;
-                    item.scrollBy(deltaX, 0);
-                    item.setAlpha(1f - Math.abs(item.getScrollX()) * 1.0f / alphaWidth);
-                    break;
-                case MotionEvent.ACTION_UP:
-                    int velocityX = getXVelocity();
-                    if (velocityX > BORDER) {
-                        scrollToRight();
-                    } /*else if (velocityX < -BORDER) {
-                        scrollToLeft();
-                    }*/ else {
-                        scrollToOrigin();
-                    }
-                    removeVelocityTracker();
-                    isSliding = false;
-                    break;
-            }
+
+        switch (ev.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                handleActionDown(ev);
+                break;
+            case MotionEvent.ACTION_MOVE:
+                handleActionMove(ev);
+                break;
+            case MotionEvent.ACTION_UP:
+                handleActionUp(ev);
+                break;
         }
         return super.onTouchEvent(ev);
+    }
+
+    private void handleActionUp(MotionEvent ev) {
+        if (item != null && isSliding && scroller.isFinished()) {
+            int velocityX = getXVelocity();
+            if (velocityX > BORDER) {
+                scrollToRight();
+            } /*else if (velocityX < -BORDER) {
+                        scrollToLeft();
+                    }*/ else {
+                scrollToOrigin();
+            }
+            removeVelocityTracker();
+            isSliding = false;
+        }
+    }
+
+    private void handleActionMove(MotionEvent ev) {
+        if (item != null && scroller.isFinished()) {
+            if ((Math.abs(ev.getX() - startX) > mTouchSlop
+                    && (Math.abs(ev.getY() - startY) < mTouchSlop))) {
+                isSliding = true;
+                addVelocityTracker(ev);
+                MotionEvent cancelEvent = MotionEvent.obtain(ev);
+                cancelEvent.setAction(MotionEvent.ACTION_CANCEL |
+                        (ev.getActionIndex() << MotionEvent.ACTION_POINTER_INDEX_SHIFT));
+                onTouchEvent(cancelEvent);
+                int curX = (int) ev.getX();
+                int deltaX = startX - curX;
+                startX = curX;
+                item.scrollBy(deltaX, 0);
+                item.setAlpha(1f - Math.abs(item.getScrollX()) * 1.0f / alphaWidth);
+            }
+        }
+
+
+    }
+
+    private void handleActionDown(MotionEvent ev) {
+        if (scroller.isFinished()) {
+            startX = (int) ev.getX();
+            startY = (int) ev.getY();
+            curPos = pointToPosition(startX, startY);
+            if (curPos == AdapterView.INVALID_POSITION) {//-1
+                item = null;
+                return;
+            }
+            item = getChildAt(curPos - getFirstVisiblePosition());
+        }
+
     }
 
 

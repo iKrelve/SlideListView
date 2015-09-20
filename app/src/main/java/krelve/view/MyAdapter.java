@@ -48,6 +48,9 @@ public class MyAdapter extends BaseAdapter {
 
     public void remove(int position) {
         mDatas.remove(position);
+        mDatas.add("我是新出现的");
+        mDatas.add("我是新出现的");
+        mDatas.add("我是新出现的");
         notifyDataSetChanged();
     }
 }
